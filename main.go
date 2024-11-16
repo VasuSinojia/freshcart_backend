@@ -44,7 +44,7 @@ func main() {
 	fmt.Println("Successfully connected to the database!")
 
 	r := gin.Default()
-	r.POST("/register", singUpHandler)
+	r.POST("/register", signUpHandler)
 	r.POST("/login", loginHandler)
 	err = r.Run(":8000")
 	if err != nil {
@@ -89,7 +89,7 @@ func loginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-func singUpHandler(c *gin.Context) {
+func signUpHandler(c *gin.Context) {
 	var user User
 
 	if err := c.ShouldBindJSON(&user); err != nil {
