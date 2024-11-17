@@ -15,7 +15,6 @@ import (
 // User represents the user model
 type User struct {
 	Name     string `json:"name" binding:"required"`
-	Phone    string `json:"phone" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
@@ -98,8 +97,8 @@ func signUpHandler(c *gin.Context) {
 	}
 
 	_, err := db.Exec(context.Background(),
-		"INSERT INTO users (name, phone, email, password) VALUES ($1, $2, $3, $4)",
-		user.Name, user.Phone, user.Email, user.Password,
+		"INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
+		user.Name, user.Email, user.Password,
 	)
 
 	if err != nil {
