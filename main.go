@@ -62,7 +62,7 @@ func generateToken(email string) (string, error) {
 func loginHandler(c *gin.Context) {
 	var loginRequest LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 	var storedPassword string
@@ -71,18 +71,29 @@ func loginHandler(c *gin.Context) {
 		loginRequest.Email, loginRequest.Password).Scan(&storedPassword)
 	if error == pgx.ErrNoRows {
 		// Email not found
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid credentials"})
 		return
 	} else if error != nil {
 		// Database error
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database error"})
 		return
 	}
 
 	// Generate and send JWT if credentials are valid
 	token, err := generateToken(loginRequest.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create token"})
+		return
+	}
+
+	// Save the token in the database
+	_, err = db.Exec(context.Background(),
+		"UPDATE users SET token = $1 WHERE email = $2",
+		token, loginRequest.Email,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save token"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"token": token})
@@ -103,7 +114,7 @@ func signUpHandler(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("Error inserting user: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create user"})
 		return
 	}
 
