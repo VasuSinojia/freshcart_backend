@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -45,6 +46,13 @@ func main() {
 	r := gin.Default()
 	r.POST("/register", signUpHandler)
 	r.POST("/login", loginHandler)
+
+	authorized := r.Group("/")
+	authorized.Use(jwtAuthMiddleware())
+	{
+		r.GET("/profile", jwtAuthMiddleware(), getProfileHandler)
+	}
+
 	err = r.Run(":8000")
 	if err != nil {
 		return
@@ -119,4 +127,73 @@ func signUpHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User signed up successfully!", "name": user.Name})
+}
+
+func getProfileHandler(c *gin.Context) {
+	// Get email from the context (set by middleware)
+	email, exists := c.Get("email")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// Query database for user profile
+	var user User
+	err := db.QueryRow(context.Background(),
+		"SELECT name, email FROM users WHERE email = $1", email).Scan(&user.Name, &user.Email)
+	if err == pgx.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+	}
+	// Return the user profile
+	c.JSON(http.StatusOK, gin.H{"user": user})
+}
+
+func jwtAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		// Get token from authorization header
+		authHeader := c.Request.Header.Get("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Authorization header"})
+			c.Abort()
+			return
+		}
+
+		fmt.Println("Authorization header:", authHeader)
+
+		// Extract token
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid Authorization header"})
+			c.Abort()
+			return
+		}
+
+		// Parse and validate token
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return jwtSecret, nil
+		})
+
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		// Extract claims and set in context
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			c.Set("email", claims["email"])
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
 }
