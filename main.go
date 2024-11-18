@@ -51,6 +51,7 @@ func main() {
 	authorized.Use(jwtAuthMiddleware())
 	{
 		r.GET("/profile", jwtAuthMiddleware(), getProfileHandler)
+		r.GET("/categories", jwtAuthMiddleware(), getCategories)
 	}
 
 	err = r.Run(":8000")
