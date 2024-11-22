@@ -25,7 +25,7 @@ func getCategories(c *gin.Context) {
 		var category Category
 		err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in write data to categories"})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while writing data to categories"})
 			return
 		}
 		categories = append(categories, category)
