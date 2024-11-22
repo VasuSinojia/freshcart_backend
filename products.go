@@ -7,14 +7,15 @@ import (
 )
 
 type Category struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	ImageUrl string `json:"imageUrl"`
 }
 
 func getCategories(c *gin.Context) {
 	var categories []Category
 
-	rows, err := db.Query(context.Background(), "SELECT * FROM categories")
+	rows, err := db.Query(context.Background(), "SELECT * FROM categories ORDER BY id")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
 		return
@@ -22,7 +23,7 @@ func getCategories(c *gin.Context) {
 	defer rows.Close()
 	for rows.Next() {
 		var category Category
-		err := rows.Scan(&category.Id, &category.Name)
+		err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error in write data to categories"})
 			return
