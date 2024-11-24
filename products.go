@@ -10,6 +10,7 @@ type Category struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
 	ImageUrl string `json:"imageUrl"`
+	Color    string `json:"color_code"`
 }
 
 func getCategories(c *gin.Context) {
@@ -23,7 +24,7 @@ func getCategories(c *gin.Context) {
 	defer rows.Close()
 	for rows.Next() {
 		var category Category
-		err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl)
+		err := rows.Scan(&category.Id, &category.Name, &category.ImageUrl, &category.Color)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while writing data to categories"})
 			return
