@@ -13,6 +13,15 @@ type Category struct {
 	Color    string `json:"color_code"`
 }
 
+type Product struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	CategoryId  int64  `json:"category_id"`
+	ImageUrl    string `json:"imageUrl"`
+	Price       int    `json:"price"`
+	Description string `json:"description"`
+}
+
 func getCategories(c *gin.Context) {
 	var categories []Category
 
@@ -33,4 +42,29 @@ func getCategories(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"categories": categories})
+}
+
+func getProductsByCategoryId(c *gin.Context) {
+	var products []Product
+	id := c.Query("category_id")
+
+	rows, err := db.Query(context.Background(), "SELECT * FROM products WHERE category_id = $1", id)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal server error"})
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var product Product
+		err := rows.Scan(&product.Id, &product.CategoryId, &product.ImageUrl, &product.Price, &product.Description, &product.Name)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while writing data to products"})
+			return
+		}
+		products = append(products, product)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"products": products})
 }

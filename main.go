@@ -35,6 +35,7 @@ func main() {
 	{
 		r.GET("/profile", jwtAuthMiddleware(), getProfileHandler)
 		r.GET("/categories", jwtAuthMiddleware(), getCategories)
+		r.GET("/products", jwtAuthMiddleware(), getProductsByCategoryId)
 	}
 
 	err = r.Run(":8000")
