@@ -45,7 +45,6 @@ func jwtAuthMiddleware() gin.HandlerFunc {
 
 		// Extract claims and set in context
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			c.Set("email", claims["email"])
 			c.Set("id", claims["id"])
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})

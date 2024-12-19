@@ -12,6 +12,7 @@ import (
 
 // User represents the user model
 type User struct {
+	Id       int    `json:"id"`
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
@@ -22,10 +23,10 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-func generateToken(email string) (string, error) {
+func generateToken(userId int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": email,
-		"exp":   time.Now().Add(time.Hour * 72).Unix(),
+		"id":  userId,
+		"exp": time.Now().Add(time.Hour * 72).Unix(),
 	})
 	return token.SignedString(jwtSecret)
 }
@@ -36,10 +37,11 @@ func loginHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	var storedPassword string
+	var user User
 	error := db.QueryRow(context.Background(),
-		"SELECT password FROM users WHERE email = $1 AND password = $2",
-		loginRequest.Email, loginRequest.Password).Scan(&storedPassword)
+		"SELECT id, name, email, password FROM users WHERE email = $1 AND password = $2",
+		loginRequest.Email, loginRequest.Password).Scan(&user.Id, &user.Name, &user.Email, &user.Password)
+
 	if error == pgx.ErrNoRows {
 		// Email not found
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid credentials"})
@@ -51,7 +53,7 @@ func loginHandler(c *gin.Context) {
 	}
 
 	// Generate and send JWT if credentials are valid
-	token, err := generateToken(loginRequest.Email)
+	token, err := generateToken(user.Id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not create token"})
 		return
