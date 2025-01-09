@@ -68,5 +68,5 @@ func getCart(c *gin.Context) {
 		carts = append(carts, cart)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"carts": carts})
+	c.JSON(http.StatusOK, gin.H{"cart": carts})
 }
