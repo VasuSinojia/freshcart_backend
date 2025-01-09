@@ -70,3 +70,21 @@ func getCart(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"cart": carts})
 }
+
+func removeFromCart(c *gin.Context) {
+	userId, exists := c.Get("id")
+
+	productId := c.Query("product_id")
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+
+	_, err := db.Exec(context.Background(), "DELETE FROM cart WHERE user_id = $1 AND product_id = $2", userId, productId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}

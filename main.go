@@ -38,6 +38,7 @@ func main() {
 		r.GET("/products", jwtAuthMiddleware(), getProductsByCategoryId)
 		r.POST("/cart", jwtAuthMiddleware(), addToCart)
 		r.GET("/cart", jwtAuthMiddleware(), getCart)
+		r.DELETE("/cart", jwtAuthMiddleware(), removeFromCart)
 	}
 
 	err = r.Run(":8000")
