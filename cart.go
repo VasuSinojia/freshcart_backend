@@ -34,11 +34,24 @@ func addToCart(c *gin.Context) {
 		return
 	}
 
-	_, err = db.Exec(context.Background(), "INSERT INTO cart (user_id, product_id, quantity) VALUES ($1,$2, $3)", userId, cart.ProductId, cart.Quantity)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	var existingQuantity int
+	quantityError := db.QueryRow(context.Background(), "SELECT quantity FROM cart WHERE user_id = $1 AND product_id = $2", userId, cart.ProductId).Scan(&existingQuantity)
+
+	if quantityError == nil {
+		// Product already exist, update quantity
+		_, err := db.Exec(context.Background(), "UPDATE cart SET quantity = quantity + 1 WHERE user_id = $1 AND product_id = $2", userId, cart.ProductId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	} else {
+		_, err = db.Exec(context.Background(), "INSERT INTO cart (user_id, product_id, quantity) VALUES ($1,$2, 1)", userId, cart.ProductId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update quantity"})
+			return
+		}
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }
 
