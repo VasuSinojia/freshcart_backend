@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"time"
 )
@@ -97,6 +98,62 @@ func removeFromCart(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+func removeFromCartQuery(productId string, userId float64) {
+	_, err := db.Exec(context.Background(), "DELETE FROM cart WHERE user_id = $1 AND product_id = $2", userId, productId)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func incrementQuantity(c *gin.Context) {
+	userId, exists := c.Get("id")
+
+	productId := c.Query("product_id")
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+
+	_, err := db.Exec(context.Background(), "UPDATE cart SET quantity = quantity + 1 WHERE user_id = $1 AND product_id = $2", userId, productId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+func decrementQuantity(c *gin.Context) {
+	userId, exists := c.Get("id")
+
+	productId := c.Query("product_id")
+
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+	var quantity int
+	err := db.QueryRow(context.Background(), "SELECT quantity FROM cart WHERE user_id = $1 AND product_id = $2", userId, productId).Scan(&quantity)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if quantity == 1 {
+		removeFromCartQuery(productId, userId.(float64))
+	} else {
+		_, err := db.Exec(context.Background(), "UPDATE cart SET quantity = quantity - 1 WHERE user_id = $1 AND product_id = $2", userId, productId)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "ok"})
